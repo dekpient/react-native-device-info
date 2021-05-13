@@ -3,6 +3,7 @@
 // Modified as the original version crashes.
 
 #import "DeviceUID.h"
+#import <os/log.h>
 
 @import UIKit;
 
@@ -47,11 +48,27 @@ NSString * const UIDKey = @"deviceUID";
     At last, the UID is persisted if needed to.
  */
 - (NSString *)uid {
-    if (!_uid) _uid = [[self class] valueForKeychainKey:UIDKey service:UIDKey];
-    if (!_uid) _uid = [[self class] valueForUserDefaultsKey:UIDKey];
-    if (!_uid) _uid = [[self class] appleIFV];
-    if (!_uid) _uid = [[self class] randomUUID];
+    if (!_uid) {
+        os_log(OS_LOG_DEFAULT, "INGALING getting from keychain");
+        _uid = [[self class] valueForKeychainKey:UIDKey service:UIDKey];
+        os_log(OS_LOG_DEFAULT, "INGALING got from keychain: %d", !_uid);
+    }
+    if (!_uid) {
+        os_log(OS_LOG_DEFAULT, "INGALING getting from user defaults");
+        _uid = [[self class] valueForUserDefaultsKey:UIDKey];
+        os_log(OS_LOG_DEFAULT, "INGALING got from user defaults: %d", !_uid);
+    }
+    if (!_uid) {
+        os_log(OS_LOG_DEFAULT, "INGALING getting from IFV");
+        _uid = [[self class] appleIFV];
+        os_log(OS_LOG_DEFAULT, "INGALING got from IFV: %d", !_uid);
+    }
+    if (!_uid) {
+        os_log(OS_LOG_DEFAULT, "INGALING generating ramdom ID");
+        _uid = [[self class] randomUUID];
+    }
     [self saveIfNeed];
+    os_log(OS_LOG_DEFAULT, "INGALING returning ID: %{public}@", _uid);
     return _uid;
 }
 
@@ -75,9 +92,11 @@ NSString * const UIDKey = @"deviceUID";
  */
 - (void)saveIfNeed {
   if (![DeviceUID valueForUserDefaultsKey:UIDKey]) {
+    os_log(OS_LOG_DEFAULT, "INGALING saving in user default");
     [DeviceUID setValue:_uid forUserDefaultsKey:UIDKey];
   }
   if (![DeviceUID valueForKeychainKey:UIDKey service:UIDKey]) {
+    os_log(OS_LOG_DEFAULT, "INGALING saving in keychain");
     [DeviceUID setValue:_uid forKeychainKey:UIDKey inService:UIDKey];
   }
 }
